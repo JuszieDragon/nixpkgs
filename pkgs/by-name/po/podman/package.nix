@@ -25,7 +25,6 @@
   extraRuntimes ? lib.optionals stdenv.hostPlatform.isLinux [ runc ], # e.g.: runc, gvisor, youki
   fuse-overlayfs,
   util-linuxMinimal,
-  iptables,
   iproute2,
   catatonit,
   gvproxy,
@@ -43,7 +42,6 @@ let
     lib.optionals stdenv.hostPlatform.isLinux [
       fuse-overlayfs
       util-linuxMinimal
-      iptables
       iproute2
     ]
     ++ lib.optionals stdenv.hostPlatform.isDarwin [
@@ -72,13 +70,13 @@ let
 in
 buildGoModule rec {
   pname = "podman";
-  version = "5.6.0";
+  version = "5.6.1";
 
   src = fetchFromGitHub {
     owner = "containers";
     repo = "podman";
     rev = "v${version}";
-    hash = "sha256-0w22mEbp1RRQlVqAKx0oHG0dVoC6m6Oo2l5RaL05t/A=";
+    hash = "sha256-i1AXjLg28VV5vHMdywlCHB9kIALXToVx/4ujaNe9Dc0=";
   };
 
   patches = [

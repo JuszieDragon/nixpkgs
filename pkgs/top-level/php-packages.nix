@@ -230,8 +230,6 @@ lib.makeScope pkgs.newScope (
 
       cyclonedx-php-composer = callPackage ../development/php-packages/cyclonedx-php-composer { };
 
-      deployer = callPackage ../development/php-packages/deployer { };
-
       grumphp = callPackage ../development/php-packages/grumphp { };
 
       phan = callPackage ../development/php-packages/phan { };
@@ -257,9 +255,10 @@ lib.makeScope pkgs.newScope (
       psalm = callPackage ../development/php-packages/psalm { };
     }
     // lib.optionalAttrs config.allowAliases {
-      phpcbf = throw "`phpcbf` is now deprecated, use `php-codesniffer` instead which contains both `phpcs` and `phpcbf`.";
-      phpcs = throw "`phpcs` is now deprecated, use `php-codesniffer` instead which contains both `phpcs` and `phpcbf`.";
-      psysh = throw "`php8${lib.versions.minor php.version}Packages.psysh` is now deprecated, use `psysh`";
+      deployer = throw "`php8${lib.versions.minor php.version}Packages.deployer` has been removed, use `deployer`";
+      phpcbf = throw "`php8${lib.versions.minor php.version}Packages.phpcbf` has been removed, use `php-codesniffer` instead which contains both `phpcs` and `phpcbf`.";
+      phpcs = throw "`php8${lib.versions.minor php.version}Packages.phpcs` has been removed, use `php-codesniffer` instead which contains both `phpcs` and `phpcbf`.";
+      psysh = throw "`php8${lib.versions.minor php.version}Packages.psysh` has been removed, use `psysh`";
     };
 
     # This is a set of PHP extensions meant to be used in php.buildEnv
