@@ -7,7 +7,7 @@
 }:
 let
   cfg = config.services.qbittorrent;
-  inherit (builtins) concatStringsSep isAttrs isString;
+  inherit (builtins) concatStringsSep isAttrs isString toJSON;
   inherit (lib)
     literalExpression
     getExe
@@ -19,7 +19,9 @@ let
     escape
     collect
     mapAttrsRecursive
+    optionalAttrs
     optionals
+    recursiveUpdate
     ;
   inherit (lib.types)
     str
@@ -50,7 +52,11 @@ let
       else
         mkKeyValueDefault { } sep k v;
   };
-  configFile = pkgs.writeText "qBittorrent.conf" (gendeepINI cfg.serverConfig);
+  
+  categoriesEnableString = "@Variant(\\0\\0\\0\\b\\0\\0\\0\\x3\\0\\0\\0\\b\\0M\\0i\\0s\\0\\x63\\0\\0\\0\\n\\0\\0\\0\\x1e\\0/\\0\\x64\\0o\\0w\\0n\\0l\\0o\\0\\x61\\0\\x64\\0s\\0/\\0M\\0i\\0s\\0\\x63\\0\\0\\0\\f\\0r\\0\\x61\\0\\x64\\0\\x61\\0r\\0r\\0\\0\\0\\n\\0\\0\\0\\x34\\0/\\0\\x64\\0o\\0w\\0n\\0l\\0o\\0\\x61\\0\\x64\\0s\\0/\\0U\\0n\\0s\\0o\\0r\\0t\\0\\x65\\0\\x64\\0/\\0r\\0\\x61\\0\\x64\\0\\x61\\0r\\0r\\0\\0\\0\\x12\\0t\\0v\\0-\\0s\\0o\\0n\\0\\x61\\0r\\0r\\0\\0\\0\\n\\0\\0\\0\\x34\\0/\\0\\x64\\0o\\0w\\0n\\0l\\0o\\0\\x61\\0\\x64\\0s\\0/\\0U\\0n\\0s\\0o\\0r\\0t\\0\\x65\\0\\x64\\0/\\0s\\0o\\0n\\0\\x61\\0r\\0r)";
+  catagoriesConfig = optionalAttrs (cfg.categories != { } && cfg.serverConfig != { }) { BitTorrent.Session.Categories = categoriesEnableString; };
+  configFile = pkgs.writeText "qBittorrent.conf" (gendeepINI (recursiveUpdate cfg.serverConfig catagoriesConfig));
+  categoriesFile = pkgs.writeText "categories.json" (toJSON cfg.categories);
 in
 {
   options.services.qbittorrent = {
@@ -79,22 +85,22 @@ in
     openFirewall = mkEnableOption "opening both the webuiPort and torrentPort over TCP in the firewall";
 
     webuiPort = mkOption {
-      default = 8080;
       type = nullOr port;
+      default = 8080;
       description = "the port passed to qbittorrent via `--webui-port`";
     };
 
     torrentingPort = mkOption {
-      default = null;
       type = nullOr port;
+      default = null;
       description = "the port passed to qbittorrent via `--torrenting-port`";
     };
 
     serverConfig = mkOption {
-      default = { };
       type = submodule {
         freeformType = attrsOf (attrsOf anything);
       };
+      default = { };
       description = ''
         Free-form settings mapped to the `qBittorrent.conf` file in the profile.
         Refer to [Explanation-of-Options-in-qBittorrent](https://github.com/qbittorrent/qBittorrent/wiki/Explanation-of-Options-in-qBittorrent).
@@ -128,6 +134,21 @@ in
       '';
     };
 
+    categories = mkOption {
+      type = submodule {
+        freeformType = attrsOf (attrsOf anything);
+      };
+      default = { };
+      description = ''
+        The categories for qBittorrent to use, mapped to the categories.json file in the profile.
+      '';
+      example = literalExpression ''
+        {
+          "TV Shows".save_path = "/var/lib/torrents/tv";
+        }
+      '';
+    };
+
     extraArgs = mkOption {
       type = listOf str;
       default = [ ];
@@ -155,6 +176,11 @@ in
             mode = "1400";
             inherit (cfg) user group;
             argument = "${configFile}";
+          };
+          "${cfg.profileDir}/qBittorrent/config/categories.json"."L+" = mkIf (cfg.categories != { }) {
+            mode = "1400";
+            inherit (cfg) user group;
+            argument = "${categoriesFile}";
           };
         };
       };
