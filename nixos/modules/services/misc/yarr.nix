@@ -25,6 +25,18 @@ in
 
     package = mkPackageOption pkgs "yarr" { };
 
+    user = mkOption {
+      type = types.str;
+      default = "yarr";
+      description = "User account under which yarr runs.";
+    };
+
+    group = mkOption {
+      type = types.str;
+      default = "yarr";
+      description = "Group under which yarr runs.";
+    };
+
     environmentFile = mkOption {
       type = types.nullOr types.path;
       default = null;
@@ -58,6 +70,12 @@ in
       default = null;
       description = "Path to a file containing username:password. `null` means no authentication required to use the service.";
     };
+
+    dbPath = mkOption {
+      type = types.nullOr types.path;
+      default = "/var/lib/yarr/storage.db";
+      description = "The directory to store service state.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -71,16 +89,14 @@ in
 
       serviceConfig = {
         Type = "simple";
+        User = cfg.user;
+        Group = cfg.group;
         Restart = "on-failure";
 
-        StateDirectory = "yarr";
-        StateDirectoryMode = "0700";
-        WorkingDirectory = "/var/lib/yarr";
         EnvironmentFile = cfg.environmentFile;
 
         LoadCredential = mkIf (cfg.authFilePath != null) "authfile:${cfg.authFilePath}";
 
-        DynamicUser = true;
         DevicePolicy = "closed";
         LockPersonality = "yes";
         MemoryDenyWriteExecute = true;
@@ -97,7 +113,7 @@ in
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
         ProtectProc = "invisible";
-        ProtectSystem = "strict";
+        ProtectSystem = "full";
         RemoveIPC = true;
         RestrictAddressFamilies = "AF_INET AF_INET6";
         RestrictNamespaces = true;
@@ -107,12 +123,22 @@ in
 
         ExecStart = ''
           ${lib.getExe cfg.package} \
-            -db storage.db \
+            -db ${cfg.dbPath} \
             -addr "${cfg.address}:${toString cfg.port}" \
             ${optionalString (cfg.baseUrl != null) "-base ${cfg.baseUrl}"} \
             ${optionalString (cfg.authFilePath != null) "-auth-file /run/credentials/yarr.service/authfile"}
         '';
       };
+    };
+
+    users = {
+      users = mkIf (cfg.user == "yarr") {
+        yarr = {
+          inherit (cfg) group;
+          isSystemUser = true;
+        };
+      };
+      groups = mkIf (cfg.group == "yarr") { yarr = { }; };
     };
   };
 }
